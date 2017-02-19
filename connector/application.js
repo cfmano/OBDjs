@@ -2,6 +2,8 @@
 
 const Logger = require('../logger/logger');
 const OBDParser = require('../OBD/obd-parser');
+const PIDTable = require('../OBD/PID/pid-table');
+const PIDModes = require('../OBD/PID/pid-modes');
 const Dashboard = require('../dashboard/dashboard');
 
 
@@ -28,6 +30,7 @@ class Application {
 		});
 	}
 
+
 	_addLogger () {
 		const { document } = this;
 
@@ -52,19 +55,6 @@ class Application {
 		});
 	}
 
-	_openDashboard (event) {
-		this._elements.openDashboardButton.disabled = true;
-
-		this.logger.log('opening dashboard...');
-
-		if (this._dashboard) {
-			this._dashboard.close();
-		}
-
-		this._dashboard = new Dashboard(this.logger);
-
-		this._dashboard.open(() => this._elements.openDashboardButton.disabled = false);
-	}
 
 	_sendCommand (event) {
 		event.preventDefault();
@@ -75,6 +65,46 @@ class Application {
 		this.obdParser.sendCommand(commandInput.value);
 		commandInput.value = '';
 	}
+
+
+	_addDashboardBindings () {
+		this.obdParser.addMessageListener(this._dashboard.updateRpm, PIDModes.RT.read, PIDTable.RPM);
+		this.obdParser.addMessageListener(this._dashboard.updateSpeed, PIDModes.RT.read, PIDTable.SPEED);
+
+		this._dashObserver = this.obdParser.addObserver(PIDModes.RT, [ PIDTable.RPM, PIDTable.SPEED ]);
+	}
+
+	_removeDashboardBindings () {
+		this.obdParser.removeObserver(this._dashObserver);
+
+		this.obdParser.removeMessageListener(this._dashboard.updateRpm, PIDModes.RT.read, PIDTable.RPM);
+		this.obdParser.removeMessageListener(this._dashboard.updateSpeed, PIDModes.RT.read, PIDTable.SPEED);
+	}
+
+	_closeDashboard () {
+		this._removeDashboardBindings();
+		this._dashboard.close();
+	}
+
+	_openDashboard () {
+		this._elements.openDashboardButton.disabled = true;
+
+		this.logger.log('opening dashboard...');
+
+		if (this._dashboard) {
+			this._closeDashboard();
+		}
+
+		this._dashboard = new Dashboard(this.logger);
+
+		this._dashboard.open(() => {
+			this._elements.openDashboardButton.disabled = false;
+			this._removeDashboardBindings();
+		});
+
+		this._addDashboardBindings();
+	}
+
 
 	_bindEvents () {
 		const { document } = this;
@@ -90,6 +120,7 @@ class Application {
 		this._elements.openDashboardButton.addEventListener('click', this._openDashboard.bind(this));
 		this._elements.commandInput.form.addEventListener('submit', this._sendCommand.bind(this));
 	}
+
 
 	_createTerminal () {
 		const { document } = this;
@@ -124,6 +155,7 @@ class Application {
 			this.obdParser.addMessageListener((data) => this.logger.log(data.toString()), OBDParser.MESSAGE_ALL);
 		});
 	}
+
 
 	_windowOpenCallback () {
 		this._addLogger();

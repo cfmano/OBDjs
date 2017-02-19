@@ -1,17 +1,18 @@
 'use strict';
 
 const SerialPort = require('serialport');
-const AvailablePIDs = require('./available-pids');
 
-const PIDTableProcessList = require('./pid-table-process-list');
-const PIDModes = require('./pid-modes');
-const PIDTable = require('./pid-table');
+const PIDModes = require('./PID/pid-modes');
+const PIDTable = require('./PID/pid-table');
+const PIDTableProcessList = require('./PID/pid-table-process-list');
+const AvailablePIDs = require('./PID/available-pids');
 
 
 class OBDParser {
 	constructor (port, baudRate, openCallback = function(){}, errorCallback = function() {}) {
 		this._buffer = Buffer.from('');
 		this._listeners = new Map();
+		this._observers = [];
 		this.availablePIDs = null;
 
 		this._sp = new SerialPort(port, {
@@ -21,8 +22,6 @@ class OBDParser {
 
 		this._sp.on('open', () => {
 			this.sendCommand('AT Z');
-
-			//this.sendCommand('AT SP 0');
 
 			this.availablePIDs = new AvailablePIDs(this.sendCommand.bind(this));
 			this.addMessageListener(this.availablePIDs.addResponse, PIDModes.RT.read, PIDTable.BASE_SUPPORT);
@@ -73,11 +72,9 @@ class OBDParser {
 	}
 
 	_notify (line) {
-		console.log(line);
 		this._notifyAllMessages(line);
 
 		const response = line.split(' ');
-		console.log(response);
 
 		const messageType = response.shift();
 		if  (!(messageType in PIDTableProcessList)) {
@@ -86,8 +83,8 @@ class OBDParser {
 
 
 		while (response.length) {
-
 			const pidType = response.shift();
+
 			if (!(pidType in PIDTableProcessList[ messageType ])) {
 				console.log('Unknown PID type found: ', pidType);
 				continue;
@@ -113,25 +110,49 @@ class OBDParser {
 			}
 
 
-			const data = response.splice(0, pidSpecs.bytes)
+			let data = response.splice(0, pidSpecs.bytes)
 				.filter((nonEmpty) => nonEmpty)
-				join('');
+				.join('');
 
 			console.log(`Recieved data for PID '${pidType}': ${data}`);
 
 			const listenerType = `${messageType}_${pidType}`;
 
 			if (this._listeners.has(listenerType)) {
+				data = pidSpecs.transform(data);
+
 				this._listeners.get(listenerType)
-					.forEach((listener) => listener(
-						pidSpecs.transform(data)
-					));
+					.forEach((listener) => listener(data));
 			}
 		}
 	}
 
 	sendCommand (command) {
 		this._sp.write(Buffer.from(command + OBDParser.bufferDelimiters[0]));
+	}
+
+	addObserver (mode = PIDModes.RT, pids = []) {
+		/* TODO: add check if exists
+		if (!(mode in PIDModes)) {
+			return null;
+		}
+		*/
+
+		const command = [ mode.send ].concat(pids).join(' ');
+
+		const interval = setInterval(() => this.sendCommand(command), 225);
+
+		this._observers.push(interval);
+		return interval;
+	}
+
+	removeObserver (interval) {
+		const index = this._observers.indexOf(interval);
+		if (index > -1) {
+			clearInterval(interval)
+			this._observers.splice(index, 1);
+		}
+		// TODO: change to map & add checking without interval reference
 	}
 
 	addMessageListener (listener, mode = OBDParser.MESSAGE_ALL, pid = null) {
@@ -147,6 +168,23 @@ class OBDParser {
 		const list = this._listeners.get(type);
 		if (!list.includes(listener)) {
 			list.push(listener);
+		}
+	}
+
+	removeMessageListener (listener, mode = OBDParser.MESSAGE_ALL, pid = null) {
+		let type = mode;
+		if (pid) {
+			type += '_' + pid;
+		}
+
+		if (!this._listeners.has(type)) {
+			return;
+		}
+
+		const list = this._listeners.get(type);
+		const index = list.indexOf(listener);
+		if (index > -1) {
+			list.splice(index, 1);
 		}
 	}
 

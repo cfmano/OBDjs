@@ -10,6 +10,8 @@ class Dashboard {
 		};
 
 		this.logger = logger;
+
+		this._bindFunctions();
 	}
 
 	_bindEvents () {
@@ -19,23 +21,27 @@ class Dashboard {
 		});
 	}
 
-	updateRpm (value) {
+	_bindFunctions () {
+		this.updateGear = this._updateGear.bind(this);
+		this.updateRpm = this._updateRpm.bind(this);
+		this.updateSpeed = this._updateSpeed.bind(this);
+	}
+
+	_updateRpm (value) {
 		this._elements.revMeter.style.setProperty('--rpm', value);
 	}
 
-	updateGear (value) {
+	_updateGear (value) {
 		this._elements.revMeter.style.setProperty('--gear', value);
 	}
 
-	updateSpeed (value) {
+	_updateSpeed (value) {
 		this._elements.speedMeter.style.setProperty('--kmh', Math.round(value));
 	}
 
 	open (closeCallback) {
 		nw.Window.open(this._windowParams.viewFile, { focus: true }, (win) => {
 			this.logger.log('dashboard window open');
-
-			console.log(this._windowParams);
 
 			win.width = this._windowParams.width;
 			win.height = this._windowParams.height;
