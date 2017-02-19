@@ -27,4 +27,3 @@ install:
 
 run:
 	nw .
-
