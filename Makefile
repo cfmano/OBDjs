@@ -8,8 +8,8 @@ prebuild:
 	endif
 
 build:
-	node_modules/.bin/lessc dashboard.less dashboard.css
-	node_modules/.bin/lessc connector.less connector.css
+	node_modules/.bin/lessc dashboard/dashboard.less dashboard/dashboard.css
+	node_modules/.bin/lessc connector/connector.less connector/connector.css
 
 install:
 	# Setup target NW.js version

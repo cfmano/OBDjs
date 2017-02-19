@@ -1,9 +1,13 @@
 'use strict';
 
 class Dashboard {
-	constructor (window, logger) {
+	constructor (logger, window) {
 		this._elements = {};
-		this._windowParams = window;
+		this._windowParams = window || {
+			viewFile: 'dashboard/dashboard.html',
+			width: 1180,
+			height: 540,
+		};
 
 		this.logger = logger;
 	}
@@ -27,9 +31,11 @@ class Dashboard {
 		this._elements.speedMeter.style.setProperty('--kmh', Math.round(value));
 	}
 
-	open () {
+	open (closeCallback) {
 		nw.Window.open(this._windowParams.viewFile, { focus: true }, (win) => {
 			this.logger.log('dashboard window open');
+
+			console.log(this._windowParams);
 
 			win.width = this._windowParams.width;
 			win.height = this._windowParams.height;
@@ -41,13 +47,14 @@ class Dashboard {
 				this.logger.log('dashboard ready');
 			});
 
-			this.close = this._close.bind(this, win);
+			this.close = this._close.bind(this, win, closeCallback);
 			win.on('close', this.close);
 		});
 	}
 
-	_close () {
+	_close (win, closeCallback = function(){}) {
 		this.logger.log('closing dashboard window');
+		closeCallback();
 		win.close(true);
 	}
 }

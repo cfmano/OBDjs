@@ -1,13 +1,17 @@
 'use strict';
 
-const Logger = require('./logger');
-const OBDParser = require('./obd-parser');
-const Dashboard = require('./dashboard');
+const Logger = require('../logger/logger');
+const OBDParser = require('../OBD/obd-parser');
+const Dashboard = require('../dashboard/dashboard');
 
 
 class Application {
-	constructor (window) {
-		this._windowParams = window;
+	constructor () {
+		this._windowParams = {
+			viewFile: 'connector/connector.html',
+			width: 820,
+			height: 635,
+		};
 		this._elements = {};
 
 		this.run();
@@ -49,20 +53,17 @@ class Application {
 	}
 
 	_openDashboard (event) {
-		event.target.disabled = true;
+		this._elements.openDashboardButton.disabled = true;
+
 		this.logger.log('opening dashboard...');
 
 		if (this._dashboard) {
 			this._dashboard.close();
 		}
 
-		this._dashboard = new Dashboard({
-			viewFile: 'dashboard.html',
-			width: 1180,
-			height: 540,
-		});
+		this._dashboard = new Dashboard(this.logger);
 
-		this._dashboard.open();
+		this._dashboard.open(() => this._elements.openDashboardButton.disabled = false);
 	}
 
 	_sendCommand (event) {
@@ -86,8 +87,8 @@ class Application {
 			commandSubmit: document.querySelector('button[type="submit"]'),
 		});
 
-		this._elements.openDashboardButton.addEventListener('click', this._openDashboard);
-		this._elements.commandInput.form.addEventListener('submit', this._sendCommand);
+		this._elements.openDashboardButton.addEventListener('click', this._openDashboard.bind(this));
+		this._elements.commandInput.form.addEventListener('submit', this._sendCommand.bind(this));
 	}
 
 	_createTerminal () {
@@ -97,7 +98,9 @@ class Application {
 		OBDParser.listAvailablePorts((ports) => ports.forEach((port) => this.logger.log(port)));
 
 		this._elements.openSerialPortButton.addEventListener('click', () => {
-			const { serialPortPathInput } = this._elements;
+			const { serialPortPathInput, openSerialPortButton } = this._elements;
+
+			openSerialPortButton.disabled = true;
 
 			this.logger.log(`opening serial port '${serialPortPathInput.value}'...`);
 
@@ -110,10 +113,15 @@ class Application {
 					this._elements.commandInput.disabled = false;
 					this._elements.commandSubmit.disabled = false;
 				},
-				(error) => error && this.logger.log(error.toString())
+				(error) => {
+					if (error) {
+						this._elements.openSerialPortButton.disabled = false;
+						this.logger.log(error.toString());
+					}
+				}
 			);
 
-			this.obdParser.addMessageListener((data) => logger.log(data.toString()), OBDParser.MESSAGE_ALL);
+			this.obdParser.addMessageListener((data) => this.logger.log(data.toString()), OBDParser.MESSAGE_ALL);
 		});
 	}
 

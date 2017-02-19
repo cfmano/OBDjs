@@ -1,7 +1,3 @@
-const Application = require('./application');
+const Application = require('./connector/application');
 
-const app = new Application({
-	viewFile: 'connector.html',
-	width: 820,
-	height: 635,
-});
+const app = new Application();
