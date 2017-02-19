@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>OBD Terminal connector</title>
+	<link rel="stylesheet" href="connector.css">
+</head>
+<body>
+	<h1>OBD Terminal connector</h1>
+
+	<form>
+		<input type="text" value="/dev/ttyUSB0">
+		<button id="connect-serialport" type="button">Connect to port</button>
+		<br>
+		<div name="output" id="output"></div>
+		<input type="text" id="command" value="" disabled>
+		<button type="submit" disabled>CMD</button>
+		<br>
+		<input id="play-pause" type="button" value="Pause">
+		<input type="reset" value="Clear">
+		<button id="open-dashboard" type="button" disabled>Open Dashboard</button>
+	</form>
+</body>
+</html>

@@ -1,0 +1,42 @@
+@keyframes typing {
+	from {
+		width: 4ch;
+	}
+}
+
+#output,
+#command {
+	counter-reset: line 0;
+	width: 86ch;
+	height: 50ch;
+	overflow-y: auto;
+	font-family: monospace;
+	font-size: 1.2em;
+	line-height: 1.5;
+	background-color: black;
+	color: white;
+
+	& > * {
+		overflow: hidden;
+		counter-increment: line;
+		width: 84ch;
+		white-space: nowrap;
+
+		animation-name: typing;
+		animation-duration: 1s;
+		animation-timing-function: steps(80, end);
+
+		&::before {
+			content: counter(line);
+			margin-right: 1ch;
+			width: 3ch;
+			display: inline-block;
+			color: lime;
+		}
+	}
+}
+
+#command {
+	height: 3ch;
+	width: 78ch;
+}

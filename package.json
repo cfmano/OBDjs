@@ -1,0 +1,11 @@
+{
+  "name": "OBD-js",
+  "main": "main.js",
+  "chromium-args": "--mixed-context",
+  "dependencies": {
+    "serialport": "^4.0.7"
+  },
+  "devDependencies": {
+    "less": "^2.7.2"
+  }
+}
